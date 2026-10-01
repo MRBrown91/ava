@@ -1,0 +1,24 @@
+FROM ruby:3.4.11-slim
+
+WORKDIR /rails
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential \
+      libpq-dev \
+      postgresql-client \
+      git \
+      curl \
+      libyaml-dev \
+      pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY Gemfile Gemfile.lock ./
+
+RUN bundle install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["bin/rails", "server", "-b", "0.0.0.0"]
