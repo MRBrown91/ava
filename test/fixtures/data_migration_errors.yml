@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  data_migration: one
+  type: 
+  message: MyText
+
+two:
+  data_migration: two
+  type: 
+  message: MyText

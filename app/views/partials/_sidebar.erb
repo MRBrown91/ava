@@ -1,0 +1,15 @@
+<aside class="hidden md:flex md:w-64 md:flex-col shrink-0 border-r border-gray-200 bg-white">
+  <div class="flex h-16 items-center px-6 font-bold text-xl border-b border-gray-100">
+    Ava Data Migrations Assignment
+  </div>
+
+  <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+    <%= link_to "Migrations",
+        migrations_path,
+        class: "block px-4 py-2 rounded-lg text-sm font-medium #{controller_name == 'migrations' ? 'text-blue-400' : 'text-gray-700 hover:bg-gray-100'}" %>
+
+    <%= link_to "Patients",
+        patients_path,
+        class: "block px-4 text-blue-400 py-2 rounded-lg text-sm font-medium #{controller_name == 'patients' ? 'text-blue-400' : 'text-gray-700 hover:bg-gray-100'}" %>
+  </nav>
+</aside>

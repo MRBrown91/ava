@@ -1,0 +1,35 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  patient_health_identifier_number: MyString
+  patient_health_identifier_number_province: MyString
+  first_name: MyString
+  last_name: MyString
+  middle_name: MyString
+  phone: MyString
+  email: MyString
+  dob: 2026-10-01
+  sex: MyString
+  address: one
+  data_migration: one
+  source_hash: MyString
+  valid_from: 2026-10-01 21:55:45
+  valid_to: 2026-10-01 21:55:45
+  is_current: false
+
+two:
+  patient_health_identifier_number: MyString
+  patient_health_identifier_number_province: MyString
+  first_name: MyString
+  last_name: MyString
+  middle_name: MyString
+  phone: MyString
+  email: MyString
+  dob: 2026-10-01
+  sex: MyString
+  address: two
+  data_migration: two
+  source_hash: MyString
+  valid_from: 2026-10-01 21:55:45
+  valid_to: 2026-10-01 21:55:45
+  is_current: false

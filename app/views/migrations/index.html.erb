@@ -1,0 +1,43 @@
+<% content_for :title, "Migrations" %>
+<% content_for :header, "Data Migrations" %>
+
+<div class="mb-6 flex justify-end">
+  <%= link_to "Upload",
+      new_migration_path,
+      class: "inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+</div>
+
+<table class="min-w-full divide-y divide-gray-200">
+  <thead>
+    <tr class="text-left">
+      <th><%= link_to 'ID', migrations_path(s: 'id', d: @sort_column == 'id' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th><%= link_to 'Source', migrations_path(s: 'source_type', d: @sort_column == 'source_type' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th><%= link_to 'Status', migrations_path(s: 'status', d: @sort_column == 'status' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th><%= link_to 'Started At', migrations_path(s: 'started_at', d: @sort_column == 'started_at' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th><%= link_to 'Completed At', migrations_path(s: 'completed_at', d: @sort_column == 'completed_at' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th>Time</th>
+      <th><%= link_to 'Rows', migrations_path(s: 'rows_processed', d: @sort_column == 'rows_processed' && @sort_direction == 'asc' ? 'desc' : 'asc') %></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @data_migrations.each do |data_migration| %>
+      <tr>
+        <td><%= data_migration.id %></td>
+        <td><%= data_migration.source_type %></td>
+        <td><%= data_migration.status %></td>
+        <td><%= data_migration.started_at.strftime("%-m/%-d/%Y %-I:%M %p") %></td>
+        <td><%= data_migration.completed_at.present? ? data_migration.completed_at.strftime("%-m/%-d/%Y %-I:%M %p") : '-' %></td>
+        <td><%= (data_migration.started_at.present? && data_migration.completed_at.present?) ? distance_of_time_in_words(data_migration.started_at, data_migration.completed_at) : "-" %></td>
+        <td><%= data_migration.rows_processed.present? ? data_migration.rows_processed : '-' %></td>
+        <td><%= link_to "More", migration_path(data_migration) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<% if @pagy.pages > 1 %>
+  <div class="flex justify-center my-6">
+    <%== @pagy.series_nav %>
+  </div>
+<% end %>

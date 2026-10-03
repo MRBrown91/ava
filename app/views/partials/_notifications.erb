@@ -1,0 +1,30 @@
+<% flash.each do |type, messages| %>
+  <% next if messages.blank? %>
+
+  <% classes = case type.to_sym
+    when :success
+        "bg-green-50 text-green-800 border-green-200"
+    when :alert
+        "bg-red-50 text-red-800 border-red-200"
+    else
+        "bg-blue-50 text-blue-800 border-blue-200"
+    end %>
+
+  <div class="notification-box p-4 mb-4 border rounded-lg <%= classes %>" role="alert">
+    <div class="flex justify-between items-center">
+      <div>
+        <ul class="list-disc list-inside">
+          <% Array(messages).each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+
+      <div>
+        <button type="button" class="ml-auto text-sm font-semibold opacity-70 hover:opacity-100" onclick="this.closest('.notification-box').remove()">
+          X
+        </button>
+      </div>
+    </div>
+  </div>
+<% end %>
