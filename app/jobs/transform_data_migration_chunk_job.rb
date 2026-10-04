@@ -54,15 +54,10 @@ class TransformDataMigrationChunkJob < ApplicationJob
         sex: raw_row[15],
         source_hash: raw_row[16]
       }
-      transformed_addresses << Migrations::TransformService.transform_address(data_migration.id, raw_object, timestamp)
       transformed_patients << Migrations::TransformService.transform_patient(data_migration.id, raw_object, timestamp)
     end
 
     ActiveRecord::Base.transaction do
-      TransformedAddressDatum.insert_all(
-        transformed_addresses
-      )
-
       TransformedPatientDatum.insert_all(
         transformed_patients
       )

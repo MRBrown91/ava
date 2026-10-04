@@ -133,31 +133,13 @@ module Migrations
     end
 
     def self.find_or_create_address(transformed_patient)
-      transformed_address = TransformedAddressDatum.find_by!(
-        data_migration_id: transformed_patient.data_migration_id,
-        raw_patient_data_id: transformed_patient.raw_patient_data_id
-      )
-      address_hash = hash_address(transformed_address)
-
-      Address.find_or_create_by!(source_hash: address_hash) do |address|
-        address.address_line_1 = transformed_address.address_line_1
-        address.address_line_2 = transformed_address.address_line_2
-        address.city = transformed_address.city
-        address.province = transformed_address.province
-        address.postal_code = transformed_address.postal_code
+      Address.find_or_create_by!(source_hash: transformed_patient.address_target_hash) do |address|
+        address.address_line_1 = transformed_patient.address_line_1
+        address.address_line_2 = transformed_patient.address_line_2
+        address.city = transformed_patient.city
+        address.province = transformed_patient.province
+        address.postal_code = transformed_patient.postal_code
       end
-    end
-
-    def self.hash_address(transformed_address)
-      Digest::SHA256.hexdigest(
-        [
-          transformed_address.address_line_1,
-          transformed_address.address_line_2,
-          transformed_address.city,
-          transformed_address.province,
-          transformed_address.postal_code
-        ].map(&:to_s).join("|")
-      )
     end
   end
 end

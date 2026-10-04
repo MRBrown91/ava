@@ -15,7 +15,13 @@ class CreateTransformedPatientData < ActiveRecord::Migration[8.1]
       t.string :email
       t.date :dob
       t.string :sex
+      t.string :address_line_1
+      t.string :address_line_2
+      t.string :city
+      t.string :province
+      t.string :postal_code
       t.string :source_hash
+      t.string :address_target_hash
 
       t.timestamps
     end

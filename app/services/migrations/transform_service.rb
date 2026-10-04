@@ -16,24 +16,17 @@ module Migrations
       true
     end
 
-    def self.transform_address(data_migration_id, raw_object, timestamp)
-      {
-        data_migration_id: data_migration_id,
-        raw_patient_data_id: raw_object[:id],
-        address_line_1: normalize_address(raw_object[:address_1]),
-        address_line_2: normalize_address(raw_object[:address_2]),
-        city: normalize_string(raw_object[:address_city]),
-        province: normalize_province(raw_object[:address_province]),
-        postal_code: normalize_postal_code(raw_object[:address_postal_code]),
-        created_at: timestamp,
-        updated_at: timestamp
-      }
-    end
-
     def self.transform_patient(data_migration_id, raw_object, timestamp)
       h_id = normalize_health_identifier(raw_object[:health_identifier])
       h_province = normalize_province(raw_object[:health_identifier_province])
       transformation_error = validate_patient(h_id, h_province)
+
+      address_line_1 = normalize_address(raw_object[:address_1])
+      address_line_2 = normalize_address(raw_object[:address_2])
+      address_city = normalize_string(raw_object[:address_city])
+      address_province = normalize_province(raw_object[:address_province])
+      address_postal_code = normalize_postal_code(raw_object[:address_postal_code])
+      address_hash = hash_address(address_line_1, address_line_2, address_city, address_province, address_postal_code)
 
       {
         data_migration_id: data_migration_id,
@@ -50,7 +43,13 @@ module Migrations
         email: normalize_email(raw_object[:email]),
         dob: normalize_date(raw_object[:date_of_birth]),
         sex: normalize_sex(raw_object[:sex]),
+        address_line_1: address_line_1,
+        address_line_2: address_line_2,
+        city: address_city,
+        province: address_province,
+        postal_code: address_postal_code,
         source_hash: raw_object[:source_hash],
+        address_target_hash: address_hash,
         created_at: timestamp,
         updated_at: timestamp
       }
@@ -206,6 +205,18 @@ module Migrations
         "NONBINARY" => "NB",
         "NON BINARY" => "NB"
       }.fetch(sex, "UKN")
+    end
+
+    def self.hash_address(address_line_1, address_line_2, address_city, address_province, address_postal_code)
+      Digest::SHA256.hexdigest(
+        [
+          address_line_1,
+          address_line_2,
+          address_city,
+          address_province,
+          address_postal_code
+        ].map(&:to_s).join("|")
+      )
     end
   end
 end
