@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_194129) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_214441) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -128,6 +128,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_194129) do
     t.index ["address_id"], name: "index_patients_on_address_id"
     t.index ["data_migration_id"], name: "index_patients_on_data_migration_id"
     t.index ["patient_health_identifier_number", "patient_health_identifier_number_province"], name: "idx_on_patient_health_identifier_number_patient_hea_90e8c53f5c", unique: true, where: "(is_current = true)"
+    t.index ["source_hash"], name: "index_patients_on_source_hash", unique: true, where: "(is_current = true)"
   end
 
   create_table "raw_patient_data", force: :cascade do |t|
