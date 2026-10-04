@@ -12,7 +12,7 @@ class TransformDataMigrationChunkJob < ApplicationJob
     transformed_patients = []
 
     # (IN PROD): Consider raw PostgreSQL cursors for performance
-    RawPatientDatum
+    raw_rows = RawPatientDatum
     .where(data_migration_id: data_migration.id)
     .where(row_number: start_row..end_row)
     .pluck(
@@ -34,7 +34,8 @@ class TransformDataMigrationChunkJob < ApplicationJob
       :sex,
       :source_hash
     )
-    .each do |raw_row|
+    raw_count = raw_rows.count
+    raw_rows.each do |raw_row|
       raw_object = {
         id: raw_row[0],
         row_number: raw_row[1],
@@ -57,10 +58,16 @@ class TransformDataMigrationChunkJob < ApplicationJob
       transformed_patients << Migrations::TransformService.transform_patient(data_migration.id, raw_object, timestamp)
     end
 
+    transformed_count = transformed_patients.count
+    skipped_count = raw_count - transformed_count
+
     ActiveRecord::Base.transaction do
       TransformedPatientDatum.insert_all(
         transformed_patients
       )
+
+      data_migration.increment!(:rows_transformed, transformed_count)
+      data_migration.increment!(:rows_skipped_at_transform, skipped_count)
     end
 
     Rails.logger.info("Transformation ##{data_migration_id}: Completed job for rows #{start_row}-#{end_row} in #{Timing.elapsed_ms(start)} ms")

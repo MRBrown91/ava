@@ -24,13 +24,26 @@ module Migrations
       transformed_patients =
         TransformedPatientDatum
           .where(data_migration_id: data_migration.id)
-          .where(transformation_status: "valid")
           .order(:row_number)
 
       transformed_patients.find_each do |transformed_patient|
         rows_processed += 1
 
         begin
+          if transformed_patient.transformation_status != "valid"
+            rows_failed += 1
+
+            data_migration.data_migration_errors.create!(
+              severity: "warning",
+              stage: "load",
+              row_id: transformed_patient.row_number,
+              error_class: "InvalidRow",
+              message: "Row #{transformed_patient.row_number}: #{transformed_patient.transformation_error || 'Unknown error'}"
+            )
+
+            next
+          end
+
           result = load_patient(
             data_migration,
             transformed_patient,

@@ -7,6 +7,16 @@ class DataMigration < ApplicationRecord
     class_name: "DataMigration::Error",
     dependent: :destroy
 
+
+  def source
+    case source_type
+    when "csv_upload"
+        csv_upload
+    else
+      raise ArgumentError, "Unsupported source type: #{source_type}"
+    end
+  end
+
   def source_file
     case source_type
     when "csv_upload"

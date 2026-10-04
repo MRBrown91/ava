@@ -32,6 +32,7 @@ class MigrationsController < ApplicationController
       started_at: Time.current
     )
     csv_upload = data_migration.create_csv_upload!(
+      filename: params[:csv_file]&.respond_to?(:original_filename) ? params[:csv_file].original_filename : nil,
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
       request_id: request.request_id
