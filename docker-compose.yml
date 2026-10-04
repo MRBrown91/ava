@@ -32,8 +32,31 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
       DATABASE_NAME: ${DATABASE_NAME:-ava_development}
       DATABASE_PORT: ${DATABASE_PORT:-5432}
+      SOLID_QUEUE_IN_PUMA: ${SOLID_QUEUE_IN_PUMA:-false}
     depends_on:
       - db
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ava_worker
+    command: >
+      bash -c "
+        bin/jobs
+      "
+    volumes:
+      - .:/rails
+    environment:
+      RAILS_ENV: development
+      DATABASE_HOST: db
+      DATABASE_USER: ${DATABASE_USER:-ava}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+      DATABASE_NAME: ${DATABASE_NAME:-ava_development}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+    depends_on:
+      - db
+    restart: unless-stopped
 
 volumes:
   pgdata:
