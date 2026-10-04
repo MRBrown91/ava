@@ -15,6 +15,8 @@ class MigrationsController < ApplicationController
   end
 
   def show
+    @data_migration = DataMigration.find(params[:id])
+    @migration_errors = @data_migration.data_migration_errors.order(:created_at)
   end
 
   def new
@@ -22,7 +24,7 @@ class MigrationsController < ApplicationController
   end
 
   def create
-    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    start = Timing.start_ms
 
     data_migration = DataMigration.create!(
       source_type: "csv_upload",
@@ -37,17 +39,17 @@ class MigrationsController < ApplicationController
 
     errors = ::Validators::CsvUpload.new(params[:csv_file]).call
     if errors.present?
-      handle_failed_upload(data_migration, errors, start)
+      handle_failed_upload(data_migration, "Validation", errors, start)
       return
     end
 
     begin
       csv_upload.file.attach(params[:csv_file]).save!
 
-      # start worker
+      DataMigrationJob.perform_later(data_migration.id)
 
       data_migration.update!(
-        preprocessing_time_ms: elapsed_ms(start)
+        preprocessing_time_ms: Timing.elapsed_ms(start)
       )
 
       flash[:success] = "Migration started"
@@ -58,6 +60,7 @@ class MigrationsController < ApplicationController
 
       handle_failed_upload(
         data_migration,
+        e.class,
         [ "Upload failed: #{e.message}" ],
         start
       )
@@ -68,13 +71,9 @@ class MigrationsController < ApplicationController
 
   private
 
-  def elapsed_ms(start)
-    ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - start) * 1000).to_i
-  end
-
-  def handle_failed_upload(data_migration, errors, start)
+  def handle_failed_upload(data_migration, error_class, errors, start)
     data_migration.update!(
-      preprocessing_time_ms: elapsed_ms(start),
+      preprocessing_time_ms: Timing.elapsed_ms(start),
       status: "failed",
       completed_at: Time.current
     )
@@ -83,6 +82,7 @@ class MigrationsController < ApplicationController
       data_migration.data_migration_errors.create!(
         severity: "error",
         stage: "preprocessing",
+        error_class: error_class,
         message: message
       )
     end

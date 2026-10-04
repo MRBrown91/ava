@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  data_migration: one
+  raw_patient_data: one
+  row_number: 1
+  transformation_status: valid
+
+two:
+  data_migration: two
+  raw_patient_data: two
+  row_number: 1
+  transformation_status: valid

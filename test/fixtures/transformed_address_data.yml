@@ -1,0 +1,9 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  data_migration: one
+  raw_patient_data: one
+
+two:
+  data_migration: two
+  raw_patient_data: two

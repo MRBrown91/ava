@@ -11,12 +11,17 @@ default: &default
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
 
 development:
-  <<: *default
-  database: <%= ENV.fetch("DATABASE_NAME", "ava_development") %>
+  primary: &primary_development
+    <<: *default
+    database: <%= ENV.fetch("DATABASE_NAME", "ava_development") %>
+  queue:
+    <<: *primary_development
+    migrations_paths: db/queue_migrate
 
 test:
-  <<: *default
-  database: ava_test
+  primary:
+    <<: *default
+    database: ava_test
 
 production:
   primary: &primary_production

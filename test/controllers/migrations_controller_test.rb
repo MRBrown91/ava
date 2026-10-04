@@ -2,17 +2,17 @@ require "test_helper"
 
 class MigrationsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
-    get migrations_index_url
+    get migrations_path
+    assert_response :success
+  end
+
+  test "should get new" do
+    get new_migration_path
     assert_response :success
   end
 
   test "should get show" do
-    get migrations_show_url
-    assert_response :success
-  end
-
-  test "should get create" do
-    get migrations_create_url
+    get migration_path(data_migrations(:one))
     assert_response :success
   end
 end

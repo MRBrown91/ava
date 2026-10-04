@@ -1,4 +1,55 @@
 <% content_for :title, "Migration" %>
 <% content_for :header, "Migration" %>
 
-<p>Find me in app/views/migrations/show.html.erb</p>
+<h2>Status</h2>
+<dl>
+  <dt>Status</dt>
+  <dd><%= @data_migration.status %></dd>
+
+  <dt>Source Type</dt>
+  <dd><%= @data_migration.source_type %></dd>
+
+  <dt>Started At</dt>
+  <dd><%= @data_migration.started_at %></dd>
+
+  <dt>Completed At</dt>
+  <dd><%= @data_migration.completed_at %></dd>
+</dl>
+
+<h2>Extraction</h2>
+<dl>
+  <dt>Status</dt>
+  <dd><%= @data_migration.status %></dd>
+
+  <dt>Started</dt>
+  <dd><%= @data_migration.extract_started_at %></dd>
+
+  <dt>Completed</dt>
+  <dd><%= @data_migration.extract_completed_at %></dd>
+
+  <dt>Time (ms)</dt>
+  <dd><%= @data_migration.extract_time_ms %></dd>
+
+  <dt>Rows Extracted</dt>
+  <dd><%= @data_migration.rows_extracted %></dd>
+
+  <dt>Extracted Size (bytes)</dt>
+  <dd><%= @data_migration.extracted_size_bytes %></dd>
+</dl>
+
+<h2>Errors</h2>
+
+<% if @migration_errors.any? %>
+  <ul>
+    <% @migration_errors.each do |error| %>
+      <li>
+        <strong><%= error.severity %></strong>
+        [<%= error.stage %>]
+        <%= error.message %>
+        (<%= error.created_at %>)
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>No errors.</p>
+<% end %>
