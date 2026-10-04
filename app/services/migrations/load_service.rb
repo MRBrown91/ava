@@ -1,5 +1,85 @@
 module Migrations
   class LoadService
+    INSERT_ADDRESSES_SQL = <<~SQL.freeze
+      INSERT INTO addresses (
+        address_line_1,
+        address_line_2,
+        city,
+        province,
+        postal_code,
+        source_hash,
+        created_at,
+        updated_at
+      )
+      SELECT t.address_line_1, t.address_line_2, t.city, t.province, t.postal_code, t.address_target_hash, :now, :now
+      FROM transformed_patient_data t
+      WHERE t.data_migration_id = :migration_id
+        AND t.transformation_status = 'valid'
+        AND NOT EXISTS (SELECT 1 FROM patients p WHERE p.source_hash = t.source_hash)
+        AND t.address_target_hash IS NOT NULL
+      ON CONFLICT (source_hash) DO NOTHING
+    SQL
+
+    UPDATE_PATIENTS_SQL = <<~SQL.freeze
+      UPDATE patients SET
+        valid_to = :now,
+        is_current = false,
+        updated_at = :now
+      WHERE is_current = true AND (patient_health_identifier_number, patient_health_identifier_number_province) IN#{' '}
+        (
+          SELECT patient_health_identifier_number::text, patient_health_identifier_number_province
+          FROM transformed_patient_data t
+          WHERE t.data_migration_id = :migration_id
+            AND t.transformation_status = 'valid'
+            AND NOT EXISTS (SELECT 1 FROM patients p WHERE p.source_hash = t.source_hash)
+        )
+    SQL
+
+    INSERT_PATIENTS_SQL = <<~SQL.freeze
+      INSERT INTO patients (
+        data_migration_id,
+        address_id,
+        patient_health_identifier_number,
+        patient_health_identifier_number_province,
+        first_name,
+        last_name,
+        middle_name,
+        phone,
+        email,
+        dob,
+        sex,
+        source_hash,
+        valid_from,
+        valid_to,
+        is_current,
+        created_at,
+        updated_at
+      )
+      SELECT
+        :migration_id,
+        a.id,
+        t.patient_health_identifier_number::text,
+        t.patient_health_identifier_number_province,
+        t.first_name,
+        t.last_name,
+        t.middle_name,
+        t.phone,
+        t.email,
+        t.dob,
+        t.sex,
+        t.source_hash,
+        :now,
+        NULL,
+        true,
+        :now,
+        :now
+      FROM transformed_patient_data t
+      JOIN addresses a ON a.source_hash = t.address_target_hash
+      WHERE t.data_migration_id = :migration_id
+        AND t.transformation_status = 'valid'
+        AND NOT EXISTS (SELECT 1 FROM patients p WHERE p.source_hash = t.source_hash)
+    SQL
+
     def self.check_prerequisites(data_migration_id)
       # PreRequisite 1: Data Migration Exists
       data_migration = DataMigration.find_by(id: data_migration_id)
@@ -13,146 +93,61 @@ module Migrations
     end
 
     def self.load(data_migration)
-      rows_processed = 0
-      rows_inserted = 0
-      rows_updated = 0
-      rows_skipped = 0
-      rows_failed = 0
-
       timestamp = Time.current
 
-      transformed_patients =
-        TransformedPatientDatum
-          .where(data_migration_id: data_migration.id)
-          .order(:row_number)
+      transformed_patients = TransformedPatientDatum.where(data_migration_id: data_migration.id)
 
-      transformed_patients.find_each do |transformed_patient|
-        rows_processed += 1
+      rows_processed = transformed_patients.count
+      rows_valid = transformed_patients.where(transformation_status: "valid").count
+      rows_invalid = rows_processed - rows_valid
 
-        begin
-          if transformed_patient.transformation_status != "valid"
-            rows_failed += 1
-
-            data_migration.data_migration_errors.create!(
+      invalid_rows = transformed_patients.where.not(transformation_status: "valid").pluck(:row_number, :transformation_error)
+      if !invalid_rows.empty?
+        DataMigration::Error.insert_all(
+          invalid_rows.map do |row_number, error|
+            {
+              data_migration_id: data_migration.id,
               severity: "warning",
               stage: "load",
-              row_id: transformed_patient.row_number,
+              row_id: row_number,
               error_class: "InvalidRow",
-              message: "Row #{transformed_patient.row_number}: #{transformed_patient.transformation_error || 'Unknown error'}"
-            )
-
-            next
+              message: "Row #{row_number}: #{error || 'Unknown error'}",
+              created_at: timestamp,
+              updated_at: timestamp
+            }
           end
+        )
+      end
 
-          result = load_patient(
-            data_migration,
-            transformed_patient,
-            timestamp
-          )
+      update_patients_count = 0
+      insert_patients_count = 0
+      ActiveRecord::Base.transaction do
+        insert_addresses = ActiveRecord::Base.sanitize_sql_array([
+          INSERT_ADDRESSES_SQL,
+          { migration_id: data_migration.id, now: timestamp }
+        ])
+        ActiveRecord::Base.connection.exec_update(insert_addresses)
 
-          case result
-          when :inserted
-            rows_inserted += 1
-          when :updated
-            rows_updated += 1
-          when :skipped
-            rows_skipped += 1
-          end
-        rescue StandardError => e
-          rows_failed += 1
+        updated_patients = ActiveRecord::Base.sanitize_sql_array([
+          UPDATE_PATIENTS_SQL,
+          { migration_id: data_migration.id, now: timestamp }
+        ])
+        update_patients_count = ActiveRecord::Base.connection.exec_update(updated_patients)
 
-          Rails.logger.error("Load failed for transformed patient #{transformed_patient.id}: #{e.class}: #{e.message}")
-
-          data_migration.data_migration_errors.create!(
-            severity: "error",
-            stage: "load",
-            error_class: e.class.name,
-            message: e.message
-          )
-        end
+        insert_patients = ActiveRecord::Base.sanitize_sql_array([
+          INSERT_PATIENTS_SQL,
+          { migration_id: data_migration.id, now: timestamp }
+        ])
+        insert_patients_count = ActiveRecord::Base.connection.exec_update(insert_patients)
       end
 
       {
         rows_processed: rows_processed,
-        rows_inserted: rows_inserted,
-        rows_updated: rows_updated,
-        rows_skipped: rows_skipped,
-        rows_failed: rows_failed
+        rows_inserted: insert_patients_count - update_patients_count,
+        rows_updated: update_patients_count,
+        rows_skipped: rows_valid - insert_patients_count,
+        rows_failed: rows_invalid
       }
-    end
-
-    def self.load_patient(data_migration, transformed_patient, timestamp)
-      return :skipped if Patient.exists?(source_hash: transformed_patient.source_hash)
-
-      current_patient = Patient.find_by(
-        patient_health_identifier_number: transformed_patient.patient_health_identifier_number,
-        patient_health_identifier_number_province: transformed_patient.patient_health_identifier_number_province,
-        is_current: true
-      )
-
-      Patient.transaction do
-        address = find_or_create_address(transformed_patient)
-
-        if current_patient
-          current_patient.update!(
-            valid_to: timestamp,
-            is_current: false
-          )
-
-          create_patient(
-            data_migration,
-            transformed_patient,
-            address,
-            timestamp
-          )
-
-          :updated
-        else
-          create_patient(
-            data_migration,
-            transformed_patient,
-            address,
-            timestamp
-          )
-
-          :inserted
-        end
-      end
-    end
-
-    def self.create_patient(
-      data_migration,
-      transformed_patient,
-      address,
-      timestamp
-    )
-      Patient.create!(
-        data_migration: data_migration,
-        address: address,
-        patient_health_identifier_number: transformed_patient.patient_health_identifier_number,
-        patient_health_identifier_number_province: transformed_patient.patient_health_identifier_number_province,
-        first_name: transformed_patient.first_name,
-        last_name: transformed_patient.last_name,
-        middle_name: transformed_patient.middle_name,
-        phone: transformed_patient.phone,
-        email: transformed_patient.email,
-        dob: transformed_patient.dob,
-        sex: transformed_patient.sex,
-        source_hash: transformed_patient.source_hash,
-        valid_from: timestamp,
-        valid_to: nil,
-        is_current: true
-      )
-    end
-
-    def self.find_or_create_address(transformed_patient)
-      Address.find_or_create_by!(source_hash: transformed_patient.address_target_hash) do |address|
-        address.address_line_1 = transformed_patient.address_line_1
-        address.address_line_2 = transformed_patient.address_line_2
-        address.city = transformed_patient.city
-        address.province = transformed_patient.province
-        address.postal_code = transformed_patient.postal_code
-      end
     end
   end
 end
