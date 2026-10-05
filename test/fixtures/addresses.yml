@@ -6,6 +6,7 @@ one:
   city: MyString
   province: MyString
   postal_code: MyString
+  source_hash: address_one_hash
 
 two:
   address_line_1: MyString
@@ -13,3 +14,4 @@ two:
   city: MyString
   province: MyString
   postal_code: MyString
+  source_hash: address_two_hash

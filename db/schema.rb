@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_214441) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_042013) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -310,7 +310,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_214441) do
     t.integer "row_number", null: false
     t.string "transformation_status", null: false
     t.string "transformation_error"
-    t.integer "patient_health_identifier_number"
+    t.string "patient_health_identifier_number"
     t.string "patient_health_identifier_number_province"
     t.string "first_name"
     t.string "last_name"
