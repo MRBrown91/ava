@@ -2,6 +2,12 @@
 
 A basic upload platform that initiates a job based ETL pipeline for mock healthcare data.
 
+<img width="3385" height="1324" alt="image" src="https://github.com/user-attachments/assets/b315848b-9706-4efa-817d-595c357a82f5" />
+
+<img width="3385" height="2561" alt="image" src="https://github.com/user-attachments/assets/db6d2f0a-0122-4cd6-8896-f3268d61af27" />
+
+<img width="3385" height="1324" alt="image" src="https://github.com/user-attachments/assets/f5242dfc-1b4c-44ab-a9da-dcde50f1bb18" />
+
 ## Prerequisites
 * Docker (https://docs.docker.com/get-docker/) (v20.10+)
 * Docker Compose (https://docs.docker.com/compose/install/) (v2.0+)
